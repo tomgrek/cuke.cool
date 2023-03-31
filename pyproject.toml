@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "cuke-cool"
+version = "0.1.0"
+description = "Python client for cuke.cool"
+authors = ["tomgrek <tom.grek@gmail.com>"]
+readme = "README.md"
+packages = [{include = "cuke"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
