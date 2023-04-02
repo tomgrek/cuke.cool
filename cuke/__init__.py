@@ -32,6 +32,8 @@ class Cuke:
         self._contributor_key = contributor_key
         self._editor_key = editor_key
         self._user_agent = kwargs.get("user_agent", None)
+        if self._page_id:
+            self._initialize_vars()
     
 
     def __getattribute__(self, key):
@@ -59,6 +61,16 @@ class Cuke:
         resp.raise_for_status()
         return resp.json()["alias"]
 
+    def _initialize_vars(self):
+        if self._api_key is not None:
+            resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._api_key))
+        elif self._editor_key is not None:
+            resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._editor_key))
+        elif self._contributor_key is not None:
+            resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._contributor_key))
+        else:
+            raise NoApiKey()
+        self._vars = resp.json()
 
     def _headers(self, key):
         return {"User-Agent": self._user_agent, "Authorization": key}

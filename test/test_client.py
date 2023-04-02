@@ -1,9 +1,11 @@
+import os
+
 import pytest
 import requests
 
 from cuke import Cuke
 
-URL = "http://localhost:5000"
+URL = os.environ.get("CUKE_URL", "http://localhost:5000")
 
 def test_updates():
     c = Cuke(user_agent="python-client-test", url=URL)
@@ -35,4 +37,12 @@ def test_store_template():
         e._store_template("iz not nice")
 
 def test_store():
-    pass
+    c = Cuke(user_agent="python-client-test", url=URL)
+    resp = c._store_template("iz nice {{ x }}")
+    url_segments = resp["url"].split("/")
+    page_slug = url_segments[2]
+    page_id = url_segments[3]
+    c.x = "to meet you"
+    c._update()
+    d = Cuke(user_agent="python-client-test", url=URL, page_slug=page_slug, page_id=page_id, editor_key=resp["editor_key"])
+    assert d._vars == {"x": "to meet you"}
