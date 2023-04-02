@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 import os
 import requests
@@ -27,11 +29,11 @@ class Cuke:
                 pass
         
         self._dirty_set = set()
+        self._user_agent = kwargs.get("user_agent", None)
         self._page_slug = page_slug or self._user_alias
         self._page_id = page_id
         self._contributor_key = contributor_key
         self._editor_key = editor_key
-        self._user_agent = kwargs.get("user_agent", None)
         if self._page_id:
             self._initialize_vars()
     
@@ -70,7 +72,11 @@ class Cuke:
             resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._contributor_key))
         else:
             raise NoApiKey()
-        self._vars = resp.json()
+        if resp.status_code == 404:
+            return False
+        for k, v in resp.json():
+            self._vars[k] = v["value"]
+            # TODO may want to deserialize it back to a python obj, e.g. b64 string -> matplotlib figure
 
     def _headers(self, key):
         return {"User-Agent": self._user_agent, "Authorization": key}
@@ -89,9 +95,14 @@ class Cuke:
         for k in keys_to_update:
             try:
                 json.dumps(self._vars[k])
-                update[k] = self._vars[k]
+                update[k] = {"type": "basic", "value": self._vars[k]}
             except Exception as e:
-                update[k] = f"Could not serialize. {e}"
+                if str(type(self._vars[k])) == "<class 'matplotlib.figure.Figure'>":
+                    buf = io.BytesIO()
+                    self._vars[k].savefig(buf, format="png")
+                    update[k] = {"type": "png_b64", "value": base64.b64encode(buf.getvalue()).decode() }
+                else:
+                    update[k] = {"type": "error", "value": f"Could not serialize. {e}" }
         # TODO this needs error handling or it kills the thread
         if self._api_key is not None:
             resp = requests.post(f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update, headers=self._headers(self._api_key))
