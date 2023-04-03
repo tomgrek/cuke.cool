@@ -74,9 +74,11 @@ class Cuke:
             raise NoApiKey()
         if resp.status_code == 404:
             return False
-        for k, v in resp.json():
-            self._vars[k] = v["value"]
+        for k in resp.json():
+            self._vars[k] = resp.json()[k]["value"]
             # TODO may want to deserialize it back to a python obj, e.g. b64 string -> matplotlib figure
+            # which obv is impossible, but, maybe it could be a message "this was originally a matplotlib figure,
+            # we serialized it and now it's a PNG that looks like this"
 
     def _headers(self, key):
         return {"User-Agent": self._user_agent, "Authorization": key}
