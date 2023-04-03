@@ -7,6 +7,29 @@ from cuke import Cuke
 
 URL = os.environ.get("CUKE_URL", "http://localhost:5000")
 
+def test_apikey():
+    """Test api key none; read from kwargs; read from env vars; read from file
+    Because it calls user_alias and the api key doesn't exist, it raises - but I did check and it's set correctly.
+    """
+    try:
+        os.remove(".cuke")
+    except FileNotFoundError:
+        pass
+    c = Cuke()
+    assert c._api_key is None
+    with pytest.raises(requests.exceptions.HTTPError):
+        c = Cuke(api_key="asdf123")
+    os.environ["CUKE_API_KEY"] = "asdf123"
+    with pytest.raises(requests.exceptions.HTTPError):
+        c = Cuke()
+    del os.environ["CUKE_API_KEY"]
+    c = Cuke()
+    with open(".cuke", "w") as f:
+        f.write("asdf123")
+    with pytest.raises(requests.exceptions.HTTPError):
+        c = Cuke()
+
+
 def test_updates():
     c = Cuke(user_agent="python-client-test", url=URL)
     assert not len(c._dirty_set)
@@ -14,6 +37,7 @@ def test_updates():
     assert c._vars == {"hello": 123}
     assert "hello" in c._dirty_set
     assert c.hello == 123
+
 
 def test_store_template():
     c = Cuke(user_agent="python-client-test", url=URL)
