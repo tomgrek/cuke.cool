@@ -8,6 +8,7 @@ import time
 import weakref
 
 from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
+from cuke.util import make_request_in_api_key_order
 
 class Cuke:
     def __init__(self, url="https://cuke.cool", api_key=None, instant_updates=False,
@@ -64,14 +65,7 @@ class Cuke:
         return resp.json()["alias"]
 
     def _initialize_vars(self):
-        if self._api_key is not None:
-            resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._api_key))
-        elif self._editor_key is not None:
-            resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._editor_key))
-        elif self._contributor_key is not None:
-            resp = requests.get(f"{self._url}/retrieve/{self._page_slug}/{self._page_id}", headers=self._headers(self._contributor_key))
-        else:
-            raise NoApiKey()
+        resp = make_request_in_api_key_order(requests.get, self, f"{self._url}/retrieve/{self._page_slug}/{self._page_id}")
         if resp.status_code == 404:
             return False
         for k in resp.json():
@@ -106,14 +100,7 @@ class Cuke:
                 else:
                     update[k] = {"type": "error", "value": f"Could not serialize. {e}" }
         # TODO this needs error handling or it kills the thread
-        if self._api_key is not None:
-            resp = requests.post(f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update, headers=self._headers(self._api_key))
-        elif self._editor_key is not None:
-            resp = requests.post(f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update, headers=self._headers(self._editor_key))
-        elif self._contributor_key is not None:
-            resp = requests.post(f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update, headers=self._headers(self._contributor_key))
-        else:
-            raise NoApiKey()
+        resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update)
         resp.raise_for_status()
         self._dirty_set = set()
         
@@ -165,14 +152,9 @@ class Cuke:
         password = basic_auth.get("password", None)
         page_id = self._page_id or ""
         
-        if self._api_key is not None:
-            resp = requests.post(f"{self._url}/store_template/{page_id}", json={"template": template, "username": username, "password": password}, headers=self._headers(self._api_key))
-        elif self._editor_key is not None:
-            resp = requests.post(f"{self._url}/store_template/{page_id}", json={"template": template, "username": username, "password": password}, headers=self._headers(self._editor_key))
-        elif self._contributor_key is not None:
-            resp = requests.post(f"{self._url}/store_template/{page_id}", json={"template": template, "username": username, "password": password}, headers=self._headers(self._contributor_key))
-        else:
-            resp = requests.post(f"{self._url}/store_template/{page_id}", json={"template": template, "username": username, "password": password}, headers=self._headers(self._api_key))        
+        resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store_template/{page_id}",
+                                             json={"template": template, "username": username, "password": password},
+                                             allow_anonymous=True)
 
         resp.raise_for_status()
         url = resp.json()["url"]
