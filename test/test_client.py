@@ -4,17 +4,25 @@ import pytest
 import requests
 
 from cuke import Cuke
+from cuke.errors import NoApiKey
 
 URL = os.environ.get("CUKE_URL", "http://localhost:5000")
 
-def test_apikey():
-    """Test api key none; read from kwargs; read from env vars; read from file
-    Because it calls user_alias and the api key doesn't exist, it raises - but I did check and it's set correctly.
-    """
+@pytest.fixture
+def clear_api_keys():
     try:
         os.remove(".cuke")
     except FileNotFoundError:
         pass
+    if "CUKE_API_KEY" in os.environ:
+        del os.environ["CUKE_API_KEY"]
+
+
+def test_apikey(clear_api_keys):
+    """Test api key none; read from kwargs; read from env vars; read from file
+    Because it calls user_alias and the api key doesn't exist, it raises - but I did check and it's set correctly.
+    """
+    
     c = Cuke()
     assert c._api_key is None
     with pytest.raises(requests.exceptions.HTTPError):
@@ -30,7 +38,7 @@ def test_apikey():
         c = Cuke()
 
 
-def test_updates():
+def test_updates(clear_api_keys):
     c = Cuke(user_agent="python-client-test", url=URL)
     assert not len(c._dirty_set)
     c.hello = 123
@@ -39,7 +47,7 @@ def test_updates():
     assert c.hello == 123
 
 
-def test_store_template():
+def test_store_template(clear_api_keys):
     c = Cuke(user_agent="python-client-test", url=URL)
     resp = c._store_template("iz nice")
     url_segments = resp["url"].split("/")
@@ -56,11 +64,10 @@ def test_store_template():
     page = requests.get(f"{URL}/page/python-client-test/{page_id}")
     assert "iz nice" not in page.text
     assert "iz not nice" in page.text
-    e = Cuke(user_agent="python-client-test", url=URL, page_slug=page_slug, page_id=page_id)
-    with pytest.raises(requests.exceptions.HTTPError):
-        e._store_template("iz not nice")
+    with pytest.raises(NoApiKey):
+        e = Cuke(user_agent="python-client-test", url=URL, page_slug=page_slug, page_id=page_id)
 
-def test_store():
+def test_store(clear_api_keys):
     c = Cuke(user_agent="python-client-test", url=URL)
     resp = c._store_template("iz nice {{ x }}")
     url_segments = resp["url"].split("/")

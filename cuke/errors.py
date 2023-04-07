@@ -1,7 +1,7 @@
 class NoApiKey(Exception):
     """No api key set"""
-    def __init__(self):
-        super().__init__("No API key set, and it's required. Generate one at https://cuke.cool/user/dashboard.")
+    def __init__(self, msg):
+        super().__init__(f"No API key set, and it's required ({msg}). Generate one at https://cuke.cool/user/dashboard.")
 
 class NoPageYet(Exception):
     """Either anonymous and no page_id yet, or api_key specified but not initialized with an id.

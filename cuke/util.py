@@ -1,6 +1,7 @@
 from cuke.errors import NoApiKey
 
-def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=False):
+def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=False,
+                                  anonymous_error_msg=""):
 
     if cls._api_key is not None:
         headers = cls._headers(cls._api_key)
@@ -10,7 +11,7 @@ def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=Fal
         headers = cls._headers(cls._contributor_key)
     else:
         if allow_anonymous is False:
-            raise NoApiKey()
+            raise NoApiKey(anonymous_error_msg)
         else:
             headers = cls._headers(None)
     if json is not None:

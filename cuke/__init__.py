@@ -65,7 +65,8 @@ class Cuke:
         return resp.json()["alias"]
 
     def _initialize_vars(self):
-        resp = make_request_in_api_key_order(requests.get, self, f"{self._url}/retrieve/{self._page_slug}/{self._page_id}")
+        resp = make_request_in_api_key_order(requests.get, self, f"{self._url}/retrieve/{self._page_slug}/{self._page_id}",
+                                             anonymous_error_msg="because you're trying to connect to an existing page, but without authentication.")
         if resp.status_code == 404:
             return False
         for k in resp.json():
