@@ -1,4 +1,5 @@
 import base64
+import inspect
 import io
 import json
 import os
@@ -37,6 +38,13 @@ class Cuke:
         self._editor_key = editor_key
         if self._page_id:
             self._initialize_vars()
+        
+        self._webworker = None
+        self._ui_thread_js_for_loop_output = None
+        self._setup = None
+        self._loop = None
+        self._frame_time = None
+        self._packages = None
     
 
     def __getattribute__(self, key):
@@ -152,10 +160,25 @@ class Cuke:
         username = basic_auth.get("username", None)
         password = basic_auth.get("password", None)
         page_id = self._page_id or ""
+
+        code = {}
+        code["webworker"] = self._webworker
+        code["ui_thread_js_for_loop_input"] = None
+        # TODO i should probably add this. For example, in the setInterval call:
+        # postMessage(`run_the_users_ui_input_code`) ... <user's code is run on ui thread; ui thread sends back a message>
+        # onMessage(`from_ui_thread`, data => for key, val in data: pyodide.globals.set(key, val))
+        # pyodide.runPython(`loop.bind(key1, key2, ...)()`)
+        code["ui_thread_js_for_loop_output"] = self._ui_thread_js_for_loop_output # let canvas = document. ...
+        code["frame_time"] = self._frame_time
+        if self._setup:
+            code["setup"] = inspect.getsource(self._setup)
+        if self._loop:
+            code["loop"] = inspect.getsource(self._loop)
+        code["packages"] = self._packages
         
         resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store_template/{page_id}",
-                                             json={"template": template, "username": username, "password": password},
-                                             allow_anonymous=True)
+                                             json={"template": template, "username": username, 
+                                             "password": password, "code": code}, allow_anonymous=True)
 
         resp.raise_for_status()
         url = resp.json()["url"]
