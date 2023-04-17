@@ -36,15 +36,17 @@ class Cuke:
         self._page_id = page_id
         self._contributor_key = contributor_key
         self._editor_key = editor_key
-        if self._page_id:
-            self._initialize_vars()
         
         self._webworker = None
         self._ui_thread_js_for_loop_output = None
         self._setup = None
         self._loop = None
+        self._event = None
         self._frame_time = None
         self._packages = None
+        self._template = None
+        if self._page_id:
+            self._initialize_vars()
     
 
     def __getattribute__(self, key):
@@ -77,8 +79,19 @@ class Cuke:
                                              anonymous_error_msg="because you're trying to connect to an existing page, but without authentication.")
         if resp.status_code == 404:
             return False
-        for k in resp.json():
-            self._vars[k] = resp.json()[k]["value"]
+        
+        resp = resp.json()
+        
+        self._template = resp.pop("__template__")
+        self._code = resp.pop("__code__")
+        self._frame_time = self._code["frame_time"]
+        self._packages = self._code["packages"]
+        self._ui_thread_js_for_loop_output = self._code["ui_thread_js_for_loop_output"]
+        self._ui_thread_js_for_loop_input = self._code["ui_thread_js_for_loop_input"]
+        self._webworker = self._code["webworker"]
+
+        for k in resp:
+            self._vars[k] = resp[k]["value"]
             # TODO may want to deserialize it back to a python obj, e.g. b64 string -> matplotlib figure
             # which obv is impossible, but, maybe it could be a message "this was originally a matplotlib figure,
             # we serialized it and now it's a PNG that looks like this"
@@ -174,6 +187,8 @@ class Cuke:
             code["setup"] = inspect.getsource(self._setup)
         if self._loop:
             code["loop"] = inspect.getsource(self._loop)
+        if self._event:
+            code["event"] = inspect.getsource(self._event)
         code["packages"] = self._packages
         
         resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store_template/{page_id}",
@@ -181,6 +196,9 @@ class Cuke:
                                              "password": password, "code": code}, allow_anonymous=True)
 
         resp.raise_for_status()
+
+        self._template = template
+
         url = resp.json()["url"]
         if not self._api_key:
             _, _, self._page_slug, self._page_id = url.split("/")

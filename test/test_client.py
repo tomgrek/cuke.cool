@@ -77,3 +77,4 @@ def test_store(clear_api_keys):
     c._update()
     d = Cuke(user_agent="python-client-test", url=URL, page_slug=page_slug, page_id=page_id, editor_key=resp["editor_key"])
     assert d._vars == {"x": "to meet you"}
+    assert d._template == "iz nice {{ x }}"
