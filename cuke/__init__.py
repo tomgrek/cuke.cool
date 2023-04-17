@@ -43,8 +43,9 @@ class Cuke:
         self._loop = None
         self._event = None
         self._frame_time = None
-        self._packages = None
+        self._packages = []
         self._template = None
+        self._code = None
         if self._page_id:
             self._initialize_vars()
     
@@ -181,14 +182,14 @@ class Cuke:
         # postMessage(`run_the_users_ui_input_code`) ... <user's code is run on ui thread; ui thread sends back a message>
         # onMessage(`from_ui_thread`, data => for key, val in data: pyodide.globals.set(key, val))
         # pyodide.runPython(`loop.bind(key1, key2, ...)()`)
-        code["ui_thread_js_for_loop_output"] = self._ui_thread_js_for_loop_output # let canvas = document. ...
+        code["ui_thread_js_for_loop_output"] = self._ui_thread_js_for_loop_output
         code["frame_time"] = self._frame_time
         if self._setup:
-            code["setup"] = inspect.getsource(self._setup)
+            code["setup"] = inspect.getsource(self._setup).strip()
         if self._loop:
-            code["loop"] = inspect.getsource(self._loop)
+            code["loop"] = inspect.getsource(self._loop).strip()
         if self._event:
-            code["event"] = inspect.getsource(self._event)
+            code["event"] = inspect.getsource(self._event).strip()
         code["packages"] = self._packages
         
         resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store_template/{page_id}",

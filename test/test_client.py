@@ -1,5 +1,6 @@
 import os
 
+from playwright.sync_api import Page, expect
 import pytest
 import requests
 
@@ -7,6 +8,7 @@ from cuke import Cuke
 from cuke.errors import NoApiKey
 
 URL = os.environ.get("CUKE_URL", "http://localhost:5000")
+was_logged = False
 
 @pytest.fixture
 def clear_api_keys():
@@ -78,3 +80,35 @@ def test_store(clear_api_keys):
     d = Cuke(user_agent="python-client-test", url=URL, page_slug=page_slug, page_id=page_id, editor_key=resp["editor_key"])
     assert d._vars == {"x": "to meet you"}
     assert d._template == "iz nice {{ x }}"
+
+def test_render(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    resp = c._store_template("iz nice {{ x }}")
+    c.x = "to play"
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("iz nice to play")
+    c.x = "to meet you"
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("iz nice to meet you")
+
+def test_code(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    def setup():
+        print("hello from python")
+    c._setup = setup
+    c._store_template("iz nice")
+    global was_logged  # playwright needs this as a global idk why
+    was_logged = False
+    def check_console(msg):
+        if msg.text.startswith("Failed to load resource"):
+            return True
+        assert msg.text == "hello from python"
+        global was_logged
+        was_logged = True
+    page.on("console", check_console)
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}", wait_until="networkidle")
+    expect(page.locator("body")).to_contain_text("iz nice", timeout=10)
+    assert was_logged
+
