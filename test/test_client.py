@@ -112,3 +112,16 @@ def test_code(clear_api_keys, page):
     expect(page.locator("body")).to_contain_text("iz nice", timeout=10)
     assert was_logged
 
+def test_private(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._store_template("iz nice")
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("iz nice")
+    c._private = True
+    c._update()
+    resp = page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    assert resp.status == 404
+    c._private = False
+    c._update()
+    resp = page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    assert resp.status == 200

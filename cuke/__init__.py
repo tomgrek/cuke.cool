@@ -11,16 +11,20 @@ import weakref
 from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
 from cuke.util import make_request_in_api_key_order
 
+KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
+                      "_contributor_key", "_editor_key", "_page_id", "_page_slug", "_template"}
+
 class Cuke:
     def __init__(self, url="https://cuke.cool", api_key=None, instant_updates=False,
                  page_slug=None, page_id=None, contributor_key=None, editor_key=None,
-                 **kwargs):
+                 private=False, **kwargs):
+        self._dirty_set = set()
+        self._instant_updates = instant_updates
         self._vars = {}
         self._vars_lock = threading.Lock()
         self._daemon = None
         self._url = url
         self._api_key = api_key
-        self._instant_updates = instant_updates
 
         if self._api_key is None:
             self._api_key = os.environ.get("CUKE_API_KEY", None)
@@ -30,7 +34,6 @@ class Cuke:
             except:
                 pass
         
-        self._dirty_set = set()
         self._user_agent = kwargs.get("user_agent", None)
         self._page_slug = page_slug or self._user_alias
         self._page_id = page_id
@@ -46,8 +49,12 @@ class Cuke:
         self._packages = []
         self._template = None
         self._code = None
+
+        self._private = private
+
         if self._page_id:
             self._initialize_vars()
+        self._dirty_set = set()
     
 
     def __getattribute__(self, key):
@@ -65,7 +72,10 @@ class Cuke:
                     self._update()
         else:
             super().__setattr__(key, val)
-
+            if key not in KEYS_TO_NOT_UPDATE:
+                self._dirty_set.add(key)
+                if self._instant_updates:
+                    self._update()
 
     @property
     def _user_alias(self):
@@ -85,11 +95,12 @@ class Cuke:
         
         self._template = resp.pop("__template__")
         self._code = resp.pop("__code__")
-        self._frame_time = self._code["frame_time"]
-        self._packages = self._code["packages"]
-        self._ui_thread_js_for_loop_output = self._code["ui_thread_js_for_loop_output"]
-        self._ui_thread_js_for_loop_input = self._code["ui_thread_js_for_loop_input"]
-        self._webworker = self._code["webworker"]
+        self._private = resp.pop("__private__")
+        self._frame_time = self._code.get("frame_time")
+        self._packages = self._code.get("packages")
+        self._ui_thread_js_for_loop_output = self._code.get("ui_thread_js_for_loop_output")
+        self._ui_thread_js_for_loop_input = self._code.get("ui_thread_js_for_loop_input")
+        self._webworker = self._code.get("webworker")
 
         for k in resp:
             self._vars[k] = resp[k]["value"]
@@ -106,7 +117,12 @@ class Cuke:
             raise NoPageYet()
         if not len(self._dirty_set):
             return False
-        update = {}
+        update = {"__meta__": {}}
+        for key in ("_private", ):
+            if key in self._dirty_set:
+                update["__meta__"][key] = getattr(self, key)
+                self._dirty_set.remove(key)
+
         if initial:
             keys_to_update = self._vars
         else:
