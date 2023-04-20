@@ -12,7 +12,7 @@ from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
 from cuke.util import make_request_in_api_key_order
 
 KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
-                      "_contributor_key", "_editor_key", "_page_id", "_page_slug", "_template"}
+                      "_contributor_key", "_editor_key", "_page_id", "_page_slug"}
 
 class Cuke:
     def __init__(self, url="https://cuke.cool", api_key=None, instant_updates=False,
@@ -48,6 +48,7 @@ class Cuke:
         self._frame_time = None
         self._packages = []
         self._template = None
+        self._basic_auth = {}
         self._code = None
 
         self._private = private
@@ -94,6 +95,7 @@ class Cuke:
         resp = resp.json()
         
         self._template = resp.pop("__template__")
+        self._basic_auth = resp.pop("__basic_auth__")
         self._code = resp.pop("__code__")
         self._private = resp.pop("__private__")
         self._frame_time = self._code.get("frame_time")
@@ -113,12 +115,16 @@ class Cuke:
 
 
     def _update(self, initial=False):
-        if not self._page_slug or not self._page_id:
-            raise NoPageYet()
+        if "_template" in self._dirty_set:
+            self.__store_template(self._template)
+            self._dirty_set.remove("_template")
         if not len(self._dirty_set):
             return False
+        if not self._page_slug or not self._page_id:
+            raise NoPageYet()
+        
         update = {"__meta__": {}}
-        for key in ("_private", ):
+        for key in ("_private", "_basic_auth"):
             if key in self._dirty_set:
                 update["__meta__"][key] = getattr(self, key)
                 self._dirty_set.remove(key)
@@ -180,15 +186,15 @@ class Cuke:
         self._stop()
 
 
-    def _store_template(self, template, basic_auth={}):
+    def __store_template(self, template):
         """
         Store a template. If basic_auth is provided - a dict with keys username and password - that will set the page up with
         HTTP basic auth.
         """
         if self._page_id is None and self._api_key is not None:
             raise SetPageIdOnInitialization()
-        username = basic_auth.get("username", None)
-        password = basic_auth.get("password", None)
+        username = self._basic_auth.get("username", None)
+        password = self._basic_auth.get("password", None)
         page_id = self._page_id or ""
 
         code = {}
