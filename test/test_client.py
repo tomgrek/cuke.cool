@@ -51,7 +51,8 @@ def test_updates(clear_api_keys):
 
 def test_store_template(clear_api_keys):
     c = Cuke(user_agent="python-client-test", url=URL)
-    resp = c._store_template("iz nice")
+    c._template = "iz nice"
+    resp = c._update()
     url_segments = resp["url"].split("/")
     page_slug = url_segments[2]
     assert page_slug == "python-client-test"
@@ -62,7 +63,8 @@ def test_store_template(clear_api_keys):
     page = requests.get(f"{URL}/page/python-client-test/{page_id}")
     assert "iz nice" in page.text
     d = Cuke(user_agent="python-client-test", url=URL, page_slug=page_slug, page_id=page_id, editor_key=resp["editor_key"])
-    d._store_template("iz not nice")
+    d._template = "iz not nice"
+    d._update()
     page = requests.get(f"{URL}/page/python-client-test/{page_id}")
     assert "iz nice" not in page.text
     assert "iz not nice" in page.text
@@ -71,7 +73,8 @@ def test_store_template(clear_api_keys):
 
 def test_store(clear_api_keys):
     c = Cuke(user_agent="python-client-test", url=URL)
-    resp = c._store_template("iz nice {{ x }}")
+    c._template = "iz nice {{ x }}"
+    resp = c._update()
     url_segments = resp["url"].split("/")
     page_slug = url_segments[2]
     page_id = url_segments[3]
@@ -83,7 +86,15 @@ def test_store(clear_api_keys):
 
 def test_render(clear_api_keys, page):
     c = Cuke(user_agent="python-client-test", url=URL)
-    resp = c._store_template("iz nice {{ x }}")
+    # test 1 step update + set vars
+    c._template = "hello {{ y }}"
+    c.y = "inventor"
+    resp = c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("hello inventor")
+    # test 2 step update
+    c._template = "iz nice {{ x }}"
+    resp = c._update()
     c.x = "to play"
     c._update()
     page.goto(f"{URL}/page/python-client-test/{c._page_id}")
@@ -98,7 +109,8 @@ def test_code(clear_api_keys, page):
     def setup():
         print("hello from python")
     c._setup = setup
-    c._store_template("iz nice")
+    c._template = "iz nice"
+    c._update()
     global was_logged  # playwright needs this as a global idk why
     was_logged = False
     def check_console(msg):
@@ -114,7 +126,8 @@ def test_code(clear_api_keys, page):
 
 def test_private(clear_api_keys, page):
     c = Cuke(user_agent="python-client-test", url=URL)
-    c._store_template("iz nice")
+    c._template = "iz nice"
+    c._update()
     page.goto(f"{URL}/page/python-client-test/{c._page_id}")
     expect(page.locator("body")).to_contain_text("iz nice")
     c._private = True

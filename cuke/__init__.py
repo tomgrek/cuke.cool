@@ -50,6 +50,7 @@ class Cuke:
         self._template = None
         self._basic_auth = {}
         self._code = None
+        self._title = None
 
         self._private = private
 
@@ -98,6 +99,7 @@ class Cuke:
         self._basic_auth = resp.pop("__basic_auth__")
         self._code = resp.pop("__code__")
         self._private = resp.pop("__private__")
+        self._title = resp.pop("__title__")
         self._frame_time = self._code.get("frame_time")
         self._packages = self._code.get("packages")
         self._ui_thread_js_for_loop_output = self._code.get("ui_thread_js_for_loop_output")
@@ -115,16 +117,23 @@ class Cuke:
 
 
     def _update(self, initial=False):
-        if "_template" in self._dirty_set:
-            self.__store_template(self._template)
-            self._dirty_set.remove("_template")
+        requires_storing = {"_template", "_frame_time", "_packages", 
+                            "_ui_thread_js_for_loop_output", "_ui_thread_js_for_loop_input",
+                            "_webworker", "_setup", "_loop", "_event"}
+        basic_updates = {}
+        if any(x in self._dirty_set for x in requires_storing):
+            basic_updates.update(self.__store_template(self._template))
+            for key in self._dirty_set:
+                if key in requires_storing:
+                    basic_updates[key] = getattr(self, key)
+            [self._dirty_set.remove(x) for x in requires_storing if x in self._dirty_set]
         if not len(self._dirty_set):
-            return False
+            return basic_updates or False
         if not self._page_slug or not self._page_id:
             raise NoPageYet()
         
         update = {"__meta__": {}}
-        for key in ("_private", "_basic_auth"):
+        for key in ("_private", "_basic_auth", "_title"):
             if key in self._dirty_set:
                 update["__meta__"][key] = getattr(self, key)
                 self._dirty_set.remove(key)
