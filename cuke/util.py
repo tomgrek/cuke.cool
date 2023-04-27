@@ -1,3 +1,6 @@
+import inspect
+from itertools import dropwhile
+
 from cuke.errors import NoApiKey
 
 def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=False,
@@ -19,3 +22,19 @@ def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=Fal
     else:
         resp = func(url, headers=headers)
     return resp
+
+
+def get_function_body(func):
+    source_lines = inspect.getsourcelines(func)[0]
+    source_lines = dropwhile(lambda x: x.startswith('@'), source_lines)
+    line = next(source_lines).strip()
+    if not line.startswith('def '):
+        return line.rsplit(':')[-1].strip()
+    elif not line.endswith(':'):
+        for line in source_lines:
+            line = line.strip()
+            if line.endswith(':'):
+                break
+    first_line = next(source_lines)
+    indentation = len(first_line) - len(first_line.lstrip())
+    return ''.join([first_line[indentation:]] + [line[indentation:] for line in source_lines])

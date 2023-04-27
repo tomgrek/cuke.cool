@@ -7,7 +7,7 @@ class NoPageYet(Exception):
     """Either anonymous and no page_id yet, or api_key specified but not initialized with an id.
     Make a page first."""
     def __init__(self):
-        super().__init__("Make a page first! (cuke._store_template)")
+        super().__init__("Make a page first! (set cuke._template)")
 
 class SetPageIdOnInitialization(Exception):
     """Didn't set page id"""

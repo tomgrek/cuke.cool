@@ -138,3 +138,16 @@ def test_private(clear_api_keys, page):
     c._update()
     resp = page.goto(f"{URL}/page/python-client-test/{c._page_id}")
     assert resp.status == 200
+
+def test_title(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "iz nice"
+    c._title = "very nice"
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("iz nice")
+    assert page.title() == "very nice - cuke.cool"
+    c._title = "very very nice"
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    assert page.title() == "very very nice - cuke.cool"

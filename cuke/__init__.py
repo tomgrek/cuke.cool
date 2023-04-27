@@ -3,13 +3,15 @@ import inspect
 import io
 import json
 import os
-import requests
 import threading
 import time
 import weakref
 
+import requests
+from requests.exceptions import HTTPError
+
 from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
-from cuke.util import make_request_in_api_key_order
+from cuke.util import get_function_body, make_request_in_api_key_order
 
 KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
                       "_contributor_key", "_editor_key", "_page_id", "_page_slug"}
@@ -80,6 +82,11 @@ class Cuke:
                     self._update()
 
     @property
+    def _page_url(self):
+        return f"{self._url}/page/{self._page_slug}/{self._page_id}"
+
+
+    @property
     def _user_alias(self):
         if self._api_key is None:
             return None
@@ -111,6 +118,7 @@ class Cuke:
             # TODO may want to deserialize it back to a python obj, e.g. b64 string -> matplotlib figure
             # which obv is impossible, but, maybe it could be a message "this was originally a matplotlib figure,
             # we serialized it and now it's a PNG that looks like this"
+            # also functions, thought about it, not doing for now.
 
     def _headers(self, key):
         return {"User-Agent": self._user_agent, "Authorization": key}
@@ -151,11 +159,19 @@ class Cuke:
                     buf = io.BytesIO()
                     self._vars[k].savefig(buf, format="png")
                     update[k] = {"type": "png_b64", "value": base64.b64encode(buf.getvalue()).decode() }
+                elif str(type(self._vars[k])) == "<class 'function'>":
+                    update[k] = {"type": "function", "value": get_function_body(self._vars[k]) }
                 else:
                     update[k] = {"type": "error", "value": f"Could not serialize. {e}" }
         # TODO this needs error handling or it kills the thread
-        resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update)
-        resp.raise_for_status()
+        try:
+            resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update)
+            resp.raise_for_status()
+        except HTTPError as e:
+            if resp.status_code == 404:
+                raise NoPageYet()
+            else:
+                raise e
         self._dirty_set = set()
         
         return False if not len(update) else update
