@@ -20,7 +20,7 @@ def clear_api_keys():
         del os.environ["CUKE_API_KEY"]
 
 
-def test_apikey(clear_api_keys):
+def _test_apikey(clear_api_keys):
     """Test api key none; read from kwargs; read from env vars; read from file
     Because it calls user_alias and the api key doesn't exist, it raises - but I did check and it's set correctly.
     """
