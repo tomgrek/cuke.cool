@@ -20,7 +20,7 @@ def clear_api_keys():
         del os.environ["CUKE_API_KEY"]
 
 
-def _test_apikey(clear_api_keys):
+def test_apikey(clear_api_keys):
     """Test api key none; read from kwargs; read from env vars; read from file
     Because it calls user_alias and the api key doesn't exist, it raises - but I did check and it's set correctly.
     """
@@ -28,16 +28,16 @@ def _test_apikey(clear_api_keys):
     c = Cuke()
     assert c._api_key is None
     with pytest.raises(requests.exceptions.HTTPError):
-        c = Cuke(api_key="asdf123")
+        c = Cuke(api_key="asdf123", url=URL)
     os.environ["CUKE_API_KEY"] = "asdf123"
     with pytest.raises(requests.exceptions.HTTPError):
-        c = Cuke()
+        c = Cuke(url=URL)
     del os.environ["CUKE_API_KEY"]
-    c = Cuke()
+    c = Cuke(url=URL)
     with open(".cuke", "w") as f:
         f.write("asdf123")
     with pytest.raises(requests.exceptions.HTTPError):
-        c = Cuke()
+        c = Cuke(url=URL)
 
 
 def test_updates(clear_api_keys):
