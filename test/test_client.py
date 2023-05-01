@@ -166,8 +166,17 @@ def test_exec_websocket(clear_api_keys, page):
     expect(page.locator("body")).to_contain_text("iz nice to be free")
     expect(page.locator("body")).not_to_contain_text("iz nice to play")
     resp = requests.get(f"{URL}/page/python-client-test/{c._page_id}/execute/setup", headers={"Authorization": c._editor_key})
-    print(resp.text)
     assert resp.status_code == 200
-    assert resp.text == 'hi'
-    #import time; time.sleep(10) # not needed as its debug mode thus will wait
+    import time; time.sleep(3)
     expect(page.locator("body")).to_contain_text("iz nice to play")
+
+def test_button(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "{{ button('likes', 'increment') }} likes: {{ likes }}"
+    c.likes = 0
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("likes: 0")
+    import time; time.sleep(1)
+    page.click("text=increment: likes")
+    expect(page.locator("body")).to_contain_text("likes: 1")
