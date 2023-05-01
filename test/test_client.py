@@ -151,3 +151,21 @@ def test_title(clear_api_keys, page):
     c._update()
     page.goto(f"{URL}/page/python-client-test/{c._page_id}")
     assert page.title() == "very very nice - cuke.cool"
+
+def test_exec_websocket(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "iz nice {{ x }}"
+    c.x = 'to be free'
+    def setup():
+        cuke.x = "to play"
+        cuke._update()
+    c.setup = setup
+    update = c._update()
+    assert update["setup"]["type"] == "function"
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("iz nice to be free")
+    expect(page.locator("body")).not_to_contain_text("iz nice to play")
+    resp = requests.get(f"{URL}/page/python-client-test/{c._page_id}/execute/setup", headers={"Authorization": c._editor_key})
+    assert resp.status_code == 200
+    #import time; time.sleep(10) # not needed as its debug mode thus will wait
+    expect(page.locator("body")).to_contain_text("iz nice to play")
