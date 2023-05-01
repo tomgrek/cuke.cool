@@ -166,6 +166,8 @@ def test_exec_websocket(clear_api_keys, page):
     expect(page.locator("body")).to_contain_text("iz nice to be free")
     expect(page.locator("body")).not_to_contain_text("iz nice to play")
     resp = requests.get(f"{URL}/page/python-client-test/{c._page_id}/execute/setup", headers={"Authorization": c._editor_key})
+    print(resp.text)
     assert resp.status_code == 200
+    assert resp.text == 'hi'
     #import time; time.sleep(10) # not needed as its debug mode thus will wait
     expect(page.locator("body")).to_contain_text("iz nice to play")
