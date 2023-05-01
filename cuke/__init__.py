@@ -59,10 +59,33 @@ class Cuke:
         if self._page_id:
             self._initialize_vars()
         self._dirty_set = set()
+
+
+    def _call_remote(self, key):
+        """Remote version of function with name `key`."""
+        resp = requests.get(f"{self._url}/page/{self._page_slug}/{self._page_id}/execute/{key}", headers=self._headers(self._editor_key))
+        resp.raise_for_status()
+        return resp.text
     
+    class _CukeFun(object):
+        """Function to be executed remotely."""
+        def __init__(self, cuke, key):
+            self._cuke = weakref.ref(cuke)
+            self._key = key
+
+        def __call__(self, *args, **kwargs):
+            cuke = self._cuke()
+            if cuke is None:
+                raise RuntimeError("Cuke object has been garbage collected.")
+            return cuke._call_remote(self._key, *args, **kwargs)
+
 
     def __getattribute__(self, key):
         if not key.startswith("_"):
+            if callable(self._vars[key]):
+                fn = self._CukeFun(self, key)
+                fn.__doc__ = f"Remote version of function with name `{key}`."
+                return fn
             return self._vars[key]
         return super().__getattribute__(key)
     

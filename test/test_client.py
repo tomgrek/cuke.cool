@@ -156,7 +156,7 @@ def test_exec_websocket(clear_api_keys, page):
     c = Cuke(user_agent="python-client-test", url=URL)
     c._template = "iz nice {{ x }}"
     c.x = 'to be free'
-    def setup():
+    def setup(cuke):
         cuke.x = "to play"
         cuke._update()
     c.setup = setup
