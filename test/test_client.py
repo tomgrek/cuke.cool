@@ -170,6 +170,7 @@ def test_exec_websocket(clear_api_keys, page):
     import time; time.sleep(3)
     expect(page.locator("body")).to_contain_text("iz nice to play")
 
+
 def test_button(clear_api_keys, page):
     c = Cuke(user_agent="python-client-test", url=URL)
     c._template = "{{ button('likes', 'increment') }} likes: {{ likes }}"
@@ -180,3 +181,34 @@ def test_button(clear_api_keys, page):
     import time; time.sleep(1)
     page.click("text=increment: likes")
     expect(page.locator("body")).to_contain_text("likes: 1")
+
+
+def test_remote_execute(clear_api_keys):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c.x = "hello"
+    c._template = ""
+    def update(cuke):
+        if cuke.x == "hello":
+            cuke.x = "goodbye"
+        else:
+            cuke.x = "hello again"
+        cuke._update()
+    c.update = update
+    c._update()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == "hello"
+    c.update()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == "goodbye"
+    c.update()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == "hello again"
+
+
+def test_no_apikey_when_editor(clear_api_keys):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "iz nice"
+    c._update()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c._api_key is None
+

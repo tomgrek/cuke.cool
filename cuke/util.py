@@ -38,3 +38,10 @@ def get_function_body(func):
     first_line = next(source_lines)
     indentation = len(first_line) - len(first_line.lstrip())
     return ''.join([first_line[indentation:]] + [line[indentation:] for line in source_lines])
+
+
+def add_header_to_function(body, name):
+    lines = ["    " + line for line in body.split('\n')]
+    func = f"def {name}(cuke):\n" + "\n".join(lines)
+    exec(func)
+    return locals()[name]

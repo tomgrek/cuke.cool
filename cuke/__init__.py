@@ -11,7 +11,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
-from cuke.util import get_function_body, make_request_in_api_key_order
+from cuke.util import add_header_to_function, get_function_body, make_request_in_api_key_order
 
 KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
                       "_contributor_key", "_editor_key", "_page_id", "_page_slug"}
@@ -137,7 +137,11 @@ class Cuke:
         self._webworker = self._code.get("webworker")
 
         for k in resp:
-            self._vars[k] = resp[k]["value"]
+            if resp[k]["type"] == "function":
+                fun = add_header_to_function(resp[k]["value"], k)
+                self._vars[k] = fun
+            else:
+                self._vars[k] = resp[k]["value"]
             # TODO may want to deserialize it back to a python obj, e.g. b64 string -> matplotlib figure
             # which obv is impossible, but, maybe it could be a message "this was originally a matplotlib figure,
             # we serialized it and now it's a PNG that looks like this"
