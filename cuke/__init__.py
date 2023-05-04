@@ -151,6 +151,11 @@ class Cuke:
         return {"User-Agent": self._user_agent, "Authorization": key}
 
 
+    def _sync(self):
+        self._update()
+        self._initialize_vars()
+
+
     def _update(self, initial=False):
         requires_storing = {"_template", "_frame_time", "_packages", 
                             "_ui_thread_js_for_loop_output", "_ui_thread_js_for_loop_input",
@@ -182,7 +187,9 @@ class Cuke:
                 json.dumps(self._vars[k])
                 update[k] = {"type": "basic", "value": self._vars[k]}
             except Exception as e:
-                if str(type(self._vars[k])) == "<class 'matplotlib.figure.Figure'>":
+                if k not in self._vars:
+                    continue
+                elif str(type(self._vars[k])) == "<class 'matplotlib.figure.Figure'>":
                     buf = io.BytesIO()
                     self._vars[k].savefig(buf, format="png")
                     update[k] = {"type": "png_b64", "value": base64.b64encode(buf.getvalue()).decode() }
