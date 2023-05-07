@@ -218,14 +218,14 @@ def test_timed_execute(clear_api_keys):
     c.x = "hello"
     c._template = ""
     def saybye(cuke):
-        # cuke: every 26s
+        # cuke: every 12s
         cuke.x = "goodbye"
         cuke._update()
     c.saybye = saybye
     c._update()
     c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
     assert c.x == "hello"
-    import time; time.sleep(36)
+    import time; time.sleep(40)
     c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
     assert c.x == "goodbye"
 
@@ -250,3 +250,17 @@ def test_knockon_execute(clear_api_keys):
     import time; time.sleep(30)
     c._sync()
     assert c.x == "nawbro"
+
+
+def test_simulated_subdomain(clear_api_keys):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "iz nice"
+    resp = c._update()
+    url_segments = resp["url"].split("/")
+    page_slug = url_segments[2]
+    assert page_slug == "python-client-test"
+    page_id = url_segments[3]
+    page = requests.get(f"{URL}/page/python-client-test/{page_id}")
+    assert "iz nice" in page.text
+    page = requests.get(f"{URL}/page/{page_id}", headers={"X-Subdomain-Fake": "python-client-test"})
+    assert "iz nice" in page.text
