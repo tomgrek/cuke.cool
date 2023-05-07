@@ -212,3 +212,41 @@ def test_no_apikey_when_editor(clear_api_keys):
     c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
     assert c._api_key is None
 
+
+def test_timed_execute(clear_api_keys):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c.x = "hello"
+    c._template = ""
+    def saybye(cuke):
+        # cuke: every 26s
+        cuke.x = "goodbye"
+        cuke._update()
+    c.saybye = saybye
+    c._update()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == "hello"
+    import time; time.sleep(36)
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == "goodbye"
+
+
+def test_knockon_execute(clear_api_keys):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c.x = "hello"
+    c._template = ""
+    def saybye(cuke):
+        # cuke: every 10s
+        cuke.x = "goodbye"
+        cuke._update()
+    def nawbro(cuke):
+        # cuke: onchange x
+        cuke.x = "nawbro"
+        cuke._update()
+    c.saybye = saybye
+    c.nawbro = nawbro
+    c._sync()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == "hello"
+    import time; time.sleep(30)
+    c._sync()
+    assert c.x == "nawbro"
