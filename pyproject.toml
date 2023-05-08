@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cuke-cool"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python client for cuke.cool"
 authors = ["tomgrek <tom.grek@gmail.com>"]
 readme = "README.md"

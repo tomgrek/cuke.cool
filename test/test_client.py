@@ -19,6 +19,9 @@ def clear_api_keys():
     if "CUKE_API_KEY" in os.environ:
         del os.environ["CUKE_API_KEY"]
 
+@pytest.fixture
+def clear_funs():
+    requests.get(f"{URL}/clear_funs")
 
 def test_apikey(clear_api_keys):
     """Test api key none; read from kwargs; read from env vars; read from file
@@ -250,6 +253,28 @@ def test_knockon_execute(clear_api_keys):
     import time; time.sleep(30)
     c._sync()
     assert c.x == "nawbro"
+
+
+def test_knockon_execute_not_twice(clear_api_keys, clear_funs):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c.x = 1
+    c._template = ""
+    def addone(cuke):
+        cuke.x += 1
+        cuke._update()
+    def onlyonceplease(cuke):
+        # cuke: onchange x
+        cuke.x += 1
+        cuke._update()
+    c.addone = addone
+    c.onlyonceplease = onlyonceplease
+    c._sync()
+    c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
+    assert c.x == 1
+    c.addone()
+    import time; time.sleep(10)
+    c._sync()
+    assert c.x == 3
 
 
 def test_simulated_subdomain(clear_api_keys):

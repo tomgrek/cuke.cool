@@ -152,6 +152,9 @@ class Cuke:
 
 
     def _sync(self):
+        """
+        Synchronize the local state with the remote state.
+        """
         self._update()
         self._initialize_vars()
 
