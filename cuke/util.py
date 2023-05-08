@@ -4,7 +4,7 @@ from itertools import dropwhile
 from cuke.errors import NoApiKey
 
 def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=False,
-                                  anonymous_error_msg=""):
+                                  anonymous_error_msg="", additional_headers=None):
 
     if cls._api_key is not None:
         headers = cls._headers(cls._api_key)
@@ -17,6 +17,8 @@ def make_request_in_api_key_order(func, cls, url, json=None, allow_anonymous=Fal
             raise NoApiKey(anonymous_error_msg)
         else:
             headers = cls._headers(None)
+    if additional_headers is not None:
+        headers.update(additional_headers)
     if json is not None:
         resp = func(url, json=json, headers=headers)
     else:

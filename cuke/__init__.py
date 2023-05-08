@@ -198,8 +198,10 @@ class Cuke:
                 else:
                     update[k] = {"type": "error", "value": f"Could not serialize. {e}" }
         # TODO this needs error handling or it kills the thread
+        if os.environ.get("CUKE_PIPELINE_STAGE", None):
+            headers = {"X-Cuke-Pipeline-Stage": os.environ["CUKE_PIPELINE_STAGE"]}
         try:
-            resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update)
+            resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update, additional_headers=headers)
             resp.raise_for_status()
         except HTTPError as e:
             if resp.status_code == 404:
