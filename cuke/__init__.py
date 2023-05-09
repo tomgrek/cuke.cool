@@ -160,6 +160,9 @@ class Cuke:
 
 
     def _update(self, initial=False):
+        """
+        Update the remote state with the local state.
+        """
         requires_storing = {"_template", "_frame_time", "_packages", 
                             "_ui_thread_js_for_loop_output", "_ui_thread_js_for_loop_input",
                             "_webworker", "_setup", "_loop", "_event"}
@@ -221,6 +224,15 @@ class Cuke:
     def _start(self, update_interval=1.5):
         """
         Start a background thread to send updates at an interval (specified in seconds).
+
+        Parameters
+        ----------
+        update_interval : float
+            How often to send updates, in seconds.
+        
+        Returns
+        -------
+        None
         """
         assert not self._instant_updates, "You don't need a background thread if instant updates are on."
         def task(self_):
