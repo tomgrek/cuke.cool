@@ -5,6 +5,10 @@ description = "Python client for cuke.cool"
 authors = ["tomgrek <tom.grek@gmail.com>"]
 readme = "README.md"
 packages = [{include = "cuke"}]
+homepage = "https://cuke.cool"
+repository = "https://github.com/tomgrek/cuke.cool"
+documentation = "https://docs.cuke.cool"
+keywords = ["publishing", "faas", "serverless", "webpage", "python"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
