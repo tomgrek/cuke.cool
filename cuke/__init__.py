@@ -147,13 +147,20 @@ class Cuke:
             # we serialized it and now it's a PNG that looks like this"
             # also functions, thought about it, not doing for now.
 
+
     def _headers(self, key):
         return {"User-Agent": self._user_agent, "Authorization": key}
 
 
     def _sync(self):
-        """
+        f"""
         Synchronize the local state with the remote state.
+
+        >>> cuke = Cuke()
+        >>> cuke.who = "me"
+        >>> cuke._template = "hello, {{ who }}"
+        >>> cuke._sync()
+
         """
         self._update()
         self._initialize_vars()
