@@ -5,6 +5,7 @@ on: [push]
 jobs:
   publish-to-pypi:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.11

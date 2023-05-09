@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "cuke-cool"
+name = "cuke"
 version = "0.1.1"
 description = "Python client for cuke.cool"
 authors = ["tomgrek <tom.grek@gmail.com>"]
@@ -9,6 +9,7 @@ packages = [{include = "cuke"}]
 [tool.poetry.dependencies]
 python = "^3.8"
 typer = {extras = ["all"], version = "^0.7.0"}
+requests = "^2.30.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.12.0"
