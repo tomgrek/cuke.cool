@@ -14,12 +14,12 @@ from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
 from cuke.util import add_header_to_function, get_function_body, make_request_in_api_key_order
 
 KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
-                      "_contributor_key", "_editor_key", "_page_id", "_page_slug"}
+                      "_contributor_key", "_editor_key", "_page_id", "_page_subslug", "_page_slug"}
 
 class Cuke:
     def __init__(self, url="https://cuke.cool", api_key=None, instant_updates=False,
-                 page_slug=None, page_id=None, contributor_key=None, editor_key=None,
-                 private=False, **kwargs):
+                 page_slug=None, page_subslug=None, page_id=None, contributor_key=None,
+                 editor_key=None, private=False, **kwargs):
         self._dirty_set = set()
         self._instant_updates = instant_updates
         self._vars = {}
@@ -38,6 +38,7 @@ class Cuke:
         
         self._user_agent = kwargs.get("user_agent", None)
         self._page_slug = page_slug or self._user_alias
+        self._page_subslug = page_subslug
         self._page_id = page_id
         self._contributor_key = contributor_key
         self._editor_key = editor_key
@@ -63,7 +64,11 @@ class Cuke:
 
     def _call_remote(self, key):
         """Remote version of function with name `key`."""
-        resp = requests.get(f"{self._url}/page/{self._page_slug}/{self._page_id}/execute/{key}", headers=self._headers(self._editor_key))
+        if self._page_subslug:
+            url = f"{self._url}/page/{self._page_slug}/{self._page_subslug}/{self._page_id}/execute/{key}"
+        else:
+            url = f"{self._url}/page/{self._page_slug}/{self._page_id}/execute/{key}"
+        resp = requests.get(url, headers=self._headers(self._editor_key))
         resp.raise_for_status()
         return resp.text
     
@@ -104,10 +109,14 @@ class Cuke:
                 if self._instant_updates:
                     self._update()
 
+    def __url_for(self, key):
+        if self._page_subslug:
+            return f"{self._url}/{key}/{self._page_slug}/{self._page_subslug}/{self._page_id}"
+        return f"{self._url}/{key}/{self._page_slug}/{self._page_id}"
+
     @property
     def _page_url(self):
-        return f"{self._url}/page/{self._page_slug}/{self._page_id}"
-
+        return self.__url_for("page")
 
     @property
     def _user_alias(self):
@@ -118,7 +127,7 @@ class Cuke:
         return resp.json()["alias"]
 
     def _initialize_vars(self):
-        resp = make_request_in_api_key_order(requests.get, self, f"{self._url}/retrieve/{self._page_slug}/{self._page_id}",
+        resp = make_request_in_api_key_order(requests.get, self, self.__url_for("retrieve"),
                                              anonymous_error_msg="because you're trying to connect to an existing page, but without authentication.")
         if resp.status_code == 404:
             return False
@@ -216,7 +225,8 @@ class Cuke:
         else:
             headers = {}
         try:
-            resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store/{self._page_slug}/{self._page_id}", json=update, additional_headers=headers)
+            qwe = self.__url_for("store")
+            resp = make_request_in_api_key_order(requests.post, self, self.__url_for("store"), json=update, additional_headers=headers)
             resp.raise_for_status()
         except HTTPError as e:
             if resp.status_code == 404:
@@ -299,7 +309,11 @@ class Cuke:
             code["event"] = inspect.getsource(self._event).strip()
         code["packages"] = self._packages
         
-        resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store_template/{page_id}",
+        if self._page_subslug:
+            url = f"{self._url}/store_template/{self._page_subslug}/{page_id}"
+        else:
+            url = f"{self._url}/store_template/{page_id}"
+        resp = make_request_in_api_key_order(requests.post, self, url,
                                              json={"template": template, "username": username, 
                                              "password": password, "code": code}, allow_anonymous=True)
 
@@ -307,13 +321,18 @@ class Cuke:
 
         self._template = template
 
-        url = resp.json()["url"]
+        response = resp.json()
+        url = response["url"]
         if not self._api_key:
-            _, _, self._page_slug, self._page_id = url.split("/")
+            #_, _, self._page_slug, self._page_id = url.split("/")
+            self._page_slug, self._page_subslug, self._page_id = response["page_slug"], response["page_subslug"], response["page_id"]
         if not self._page_id:
-            _, _, _, self._page_id = url.split("/")
+            #_, _, _, self._page_id = url.split("/")
+            self._page_id = response["page_id"]
+        if not self._page_subslug:
+            self._page_subslug = response["page_subslug"]
         if not self._page_slug:
-            _, _, self._page_slug, _ = url.split("/")
+            self._page_slug = response["page_slug"]
         self._contributor_key = resp.json()["contributor_key"]
         self._editor_key = resp.json()["editor_key"]
         
