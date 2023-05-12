@@ -290,7 +290,7 @@ class Cuke:
             raise SetPageIdOnInitialization()
         username = self._basic_auth.get("username", None)
         password = self._basic_auth.get("password", None)
-        page_id = self._page_id or ""
+        page_id = self._page_id or None
 
         code = {}
         code["webworker"] = self._webworker
@@ -309,13 +309,10 @@ class Cuke:
             code["event"] = inspect.getsource(self._event).strip()
         code["packages"] = self._packages
         
-        if self._page_subslug:
-            url = f"{self._url}/store_template/{self._page_subslug}/{page_id}"
-        else:
-            url = f"{self._url}/store_template/{page_id}"
-        resp = make_request_in_api_key_order(requests.post, self, url,
-                                             json={"template": template, "username": username, 
-                                             "password": password, "code": code}, allow_anonymous=True)
+        resp = make_request_in_api_key_order(requests.post, self, f"{self._url}/store_template",
+                                             json={"template": template, "username": username,
+                                                   "page_subslug": self._page_subslug, "page_id": page_id, 
+                                                   "password": password, "code": code}, allow_anonymous=True)
 
         resp.raise_for_status()
 
