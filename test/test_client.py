@@ -507,10 +507,21 @@ def test_simulated_subdomain(clear_api_keys):
     assert "iz nice" in page.text
 
 
-def test_delete_page_cascade(clear_api_keys):
-    c = Cuke(user_agent="python-client-test", url=URL)
+def test_delete_page(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", page_id="fodder", api_key=os.environ["CUKE_FAKE_APIKEY"], url=URL)
     # test 1 step update + set vars
     c._template = "hello {{ y }}"
     c.y = "inventor"
-    c._update()
-    status = requests.delete(f"{URL}/user/delete_page/{c._page_id}")#, headers={"Authorization": c._editor_key})
+    resp = c._update()
+    page.goto(f"{URL}/page/{c._page_slug}/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("hello inventor")
+    status = requests.delete(f"{URL}/user/delete_page/{c._page_id}")
+    assert status.status_code == 401
+    status = requests.delete(f"{URL}/user/delete_page/{c._page_id}", headers={"Authorization": os.environ["CUKE_FAKE_APIKEY"]})
+    assert status.status_code == 200
+    response = page.goto(f"{URL}/page/{c._page_slug}/{c._page_id}")
+    assert response.status == 404
+
+
+def test_loggedin(clear_api_keys, clear_funs):
+    c = Cuke(user_agent="python-client-test", api_key=os.environ["CUKE_FAKE_APIKEY"], url=URL)
