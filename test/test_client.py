@@ -403,10 +403,10 @@ def test_timed_execute(clear_api_keys, clear_funs):
     c._update()
     c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
     assert c.x == "hello"
-    import time; time.sleep(20)
+    import time; time.sleep(30)
     c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
     assert c.x == "goodbye"
-    import time; time.sleep(30) # otherwise clear_funs might be invoked before /done is executed
+    import time; time.sleep(20) # otherwise clear_funs might be invoked before /done is executed
 
 
 def test_timed_execute_subslug(clear_api_keys, clear_funs):
