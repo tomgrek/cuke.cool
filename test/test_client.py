@@ -542,3 +542,30 @@ def test_math(clear_api_keys, page):
     page.click("text=increment: likes")
     expect(page.locator("body")).to_contain_text("mean: 1.5")
     expect(page.locator("body")).to_contain_text("mean_of_all: 1")
+    c.likes = 5
+    c._sync()
+    import time; time.sleep(1)
+    expect(page.locator("body")).to_contain_text("likes: 5")
+    expect(page.locator("body")).to_contain_text("mean: 3.5")
+    expect(page.locator("body")).to_contain_text("mean_of_all: 2.0")
+
+
+def test_render_nobug(clear_api_keys, page):
+    # There was a bug (unrelated to math) where not having a plain {{ likes }} would mess the rendering
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "{{ button('likes', 'increment') }} {{ button('likes', 'decrement') }} mean: {{ math('likes', 'mean', 2) }} mean_of_all: {{ math('likes', 'mean', -1) }}"
+    c.likes = 0
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("mean: 0")
+    import time; time.sleep(1)
+    page.click("text=increment: likes")
+    expect(page.locator("body")).to_contain_text("mean: 0.5")
+    page.click("text=increment: likes")
+    expect(page.locator("body")).to_contain_text("mean: 1.5")
+    expect(page.locator("body")).to_contain_text("mean_of_all: 1")
+    c.likes = 5
+    c._sync()
+    import time; time.sleep(1)
+    expect(page.locator("body")).to_contain_text("mean: 3.5")
+    expect(page.locator("body")).to_contain_text("mean_of_all: 2.0")
