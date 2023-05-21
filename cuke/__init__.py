@@ -14,7 +14,8 @@ from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
 from cuke.util import add_header_to_function, get_function_body, make_request_in_api_key_order
 
 KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
-                      "_contributor_key", "_editor_key", "_page_id", "_page_subslug", "_page_slug"}
+                      "_contributor_key", "_editor_key", "_page_id", "_page_subslug", "_page_slug",
+                      "_views"}
 
 class Cuke:
     def __init__(self, url="https://cuke.cool", api_key=None, instant_updates=False,
@@ -54,6 +55,7 @@ class Cuke:
         self._basic_auth = {}
         self._code = None
         self._title = None
+        self._views = None
 
         self._private = private
 
@@ -139,6 +141,7 @@ class Cuke:
         self._code = resp.pop("__code__")
         self._private = resp.pop("__private__")
         self._title = resp.pop("__title__")
+        self._views = resp.pop("__views__")
         self._frame_time = self._code.get("frame_time")
         self._packages = self._code.get("packages")
         self._ui_thread_js_for_loop_output = self._code.get("ui_thread_js_for_loop_output")

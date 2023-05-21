@@ -490,7 +490,7 @@ def test_knockon_execute_not_twice(clear_api_keys, clear_funs):
     c = Cuke(user_agent="python-client-test", url=URL, page_slug=c._page_slug, page_id=c._page_id, editor_key=c._editor_key)
     assert c.x == 1
     c.addone()
-    import time; time.sleep(10)
+    import time; time.sleep(20)
     c._sync()
     assert c.x == 3
 
@@ -526,7 +526,14 @@ def test_delete_page(clear_api_keys, page):
 
 
 def test_loggedin(clear_api_keys, clear_funs):
-    c = Cuke(user_agent="python-client-test", api_key=os.environ["CUKE_FAKE_APIKEY"], url=URL)
+    c = Cuke(user_agent="python-client-test", api_key=os.environ["CUKE_FAKE_APIKEY"], page_id="nomatter", url=URL)
+    assert c._views == 0
+    c._template = "hello"
+    c._sync()
+    assert c._views == 0
+    requests.get(f"{URL}/page/testuser/nomatter")
+    c._sync()
+    assert c._views == 1
 
 
 def test_math(clear_api_keys, page):
