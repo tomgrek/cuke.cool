@@ -329,7 +329,7 @@ def test_exec_websocket_subslug(clear_api_keys, page, clear_funs):
 
 def test_button(clear_api_keys, page):
     c = Cuke(user_agent="python-client-test", url=URL)
-    c._template = "{{ button('likes', 'increment') }} likes: {{ likes }}"
+    c._template = "{{ button('likes', 'increment') }} {{ button('likes', 'decrement') }} likes: {{ likes }}"
     c.likes = 0
     c._update()
     page.goto(f"{URL}/page/python-client-test/{c._page_id}")
@@ -337,6 +337,8 @@ def test_button(clear_api_keys, page):
     import time; time.sleep(1)
     page.click("text=increment: likes")
     expect(page.locator("body")).to_contain_text("likes: 1")
+    page.click("text=decrement: likes")
+    expect(page.locator("body")).to_contain_text("likes: 0")
 
 
 def test_remote_execute(clear_api_keys):
@@ -525,3 +527,18 @@ def test_delete_page(clear_api_keys, page):
 
 def test_loggedin(clear_api_keys, clear_funs):
     c = Cuke(user_agent="python-client-test", api_key=os.environ["CUKE_FAKE_APIKEY"], url=URL)
+
+
+def test_math(clear_api_keys, page):
+    c = Cuke(user_agent="python-client-test", url=URL)
+    c._template = "{{ button('likes', 'increment') }} {{ button('likes', 'decrement') }} likes: {{ likes }} mean: {{ math('likes', 'mean', 2) }} mean_of_all: {{ math('likes', 'mean', -1) }}"
+    c.likes = 0
+    c._update()
+    page.goto(f"{URL}/page/python-client-test/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("mean: 0")
+    import time; time.sleep(1)
+    page.click("text=increment: likes")
+    expect(page.locator("body")).to_contain_text("mean: 0.5")
+    page.click("text=increment: likes")
+    expect(page.locator("body")).to_contain_text("mean: 1.5")
+    expect(page.locator("body")).to_contain_text("mean_of_all: 1")
