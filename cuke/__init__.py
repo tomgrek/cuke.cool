@@ -11,6 +11,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from cuke.errors import NoApiKey, NoPageYet, SetPageIdOnInitialization
+from cuke.types import Image
 from cuke.util import add_header_to_function, get_function_body, make_request_in_api_key_order
 
 KEYS_TO_NOT_UPDATE = {"_dirty_set", "_instant_updates", "_vars", "_vars_lock", "_daemon",
@@ -220,6 +221,8 @@ class Cuke:
                     update[k] = {"type": "png_b64", "value": base64.b64encode(buf.getvalue()).decode() }
                 elif str(type(self._vars[k])) == "<class 'function'>":
                     update[k] = {"type": "function", "value": get_function_body(self._vars[k]) }
+                elif str(type(self._vars[k])) == "<class 'cuke.types.Image'>":
+                    update[k] = {"type": "png_b64", "value": base64.b64encode(self._vars[k].data).decode() }
                 else:
                     update[k] = {"type": "error", "value": f"Could not serialize. {e}" }
         # TODO this needs error handling or it kills the thread
