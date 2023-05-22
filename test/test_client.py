@@ -478,6 +478,7 @@ def test_knockon_execute_not_twice(clear_api_keys, clear_funs):
     # This test is flaky in github but not locally. Set debug=False
     # in backend/__main__.py to get the github error locally. It's then fixed by
     # disabling eventlet monkeypatch. Seems not a good outcome but not worrying about it for now.
+    # nb I checked and deployed, it works as intended.
     c = Cuke(user_agent="python-client-test", url=URL)
     c.x = 1
     c._template = ""
@@ -497,6 +498,37 @@ def test_knockon_execute_not_twice(clear_api_keys, clear_funs):
     import time; time.sleep(20)
     c._sync()
     assert c.x == 3
+
+def test_invocation_via_button(clear_api_keys, clear_funs, page):
+    pageid = uuid.uuid4().hex[:12]
+    c = Cuke(user_agent="python-client-test", api_key=os.environ["CUKE_FAKE_APIKEY"], page_id=pageid, url=URL)
+    c._template = """
+<h1>Docker execute once test.</h1>
+<p>Clicking the button should increment the number (bobo) twice.</p>
+bobo: {{ bobo }}
+{{ button('bobo', 'increment') }}
+"""
+    c.bobo = 0
+    def boboplus(cuke):
+        # cuke: onchange bobo
+        cuke.bobo += 1
+        cuke._update()
+    # Store the var first, else boboplus will be triggered on initial creation too
+    # that's not our intent here.
+    c._sync()
+    assert c.bobo == 0
+    c.boboplus = boboplus
+    c._sync()
+    assert c.bobo == 0
+    page.goto(f"{URL}/page/{c._page_slug}/{c._page_id}")
+    expect(page.locator("body")).to_contain_text("Docker execute once test.")
+    import time; time.sleep(1)
+    page.click("text=increment: bobo")
+    import time; time.sleep(10)
+    c._sync()
+    assert c.bobo == 2
+    expect(page.locator("body")).to_contain_text("bobo: 2")
+
 
 
 def test_simulated_subdomain(clear_api_keys):
